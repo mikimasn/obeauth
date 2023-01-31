@@ -7,9 +7,8 @@ const app: Express = express();
 const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+prepair();
 router(app);
-CryptoUtil.prepareKeys();
-DbUtil.initializedb();
 app.use("/",(req:Request,res:Response)=>{
     res.status(404).send({
         "error":0,
@@ -25,3 +24,8 @@ process.on("unhandledRejection",(reason,p)=>{
 process.on("uncaughtException",(err)=>{
     console.log("Uncaught Exception: ",err);
 });
+async function prepair(){
+    await CryptoUtil.prepareKeys();
+    await DbUtil.initializedb();
+    await AuthUtil.createRoot();
+}

@@ -24,6 +24,19 @@ export default class implements ReturnableHTTP {
             });
         });
     }
+    public async setFlags(flags:number):Promise<void>{
+        return new Promise((resolve,reject)=>{
+            let conn = DbUtil.getConnection();
+            conn.query(`update ${DbUtil.getTablePrefix()}_users set flags = ? where id = ?`,[flags,this.id],(err)=>{
+                if(err) {
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                resolve();
+            });
+        })
+    }
     public static async createUser(username:string,password:string,req:Request):Promise<User>{
         return new Promise(async (resolve,reject)=>{
             let conn = DbUtil.getConnection();

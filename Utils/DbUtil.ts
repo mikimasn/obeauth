@@ -4,7 +4,7 @@ export default class {
     private static conn : Connection;
     public static async initializedb():Promise<void> {
         await this.createconnection();
-        this.conn.query(`create table if not exists ${config.tableprefix}_sessions
+        await this.conn.query(`create table if not exists ${config.tableprefix}_sessions
             (
                 session_id int auto_increment invisible,
                 revoked    boolean not null,
@@ -20,7 +20,7 @@ export default class {
             );
             create index if not exists user
                 on ${config.tableprefix}_sessions (owner);`);
-        this.conn.query(`create table if not exists ${config.tableprefix}_logs
+        await this.conn.query(`create table if not exists ${config.tableprefix}_logs
             (
             session_id TEXT null,
             timestamp  long null,
@@ -32,7 +32,7 @@ export default class {
             constraint id
                 primary key (id)
             )`);
-        this.conn.query(`
+        await this.conn.query(`
         create table if not exists ${config.tableprefix}_applications
         (
             id      int auto_increment,
@@ -44,7 +44,7 @@ export default class {
         
         create index if not exists owner
             on ${config.tableprefix}_applications (ownerid);`);
-        this.conn.query(`
+        await this.conn.query(`
         create table if not exists ${config.tableprefix}_users
         (
             id            int auto_increment,

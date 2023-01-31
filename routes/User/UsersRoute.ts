@@ -3,7 +3,7 @@ import DbUtil from "../../Utils/DbUtil";
 import ConfigUtil from "../../Utils/ConfigUtil";
 import AuthUtil from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
-import rateLimit from "express-rate-limit";
+let rateLimit = require("express-rate-limit");
 export default function (app:Express){
     let ratelimit = rateLimit({
         windowMs: 60 * 1000,
@@ -50,4 +50,16 @@ export default function (app:Express){
            }
        })
     });
+    app.patch("/users/:userid/flags",async(req:Request,res:Response)=>{
+        if(!req.body.token){
+            AuthUtil.reject401(res);
+            return;
+        }
+        let auth = await AuthUtil.authenticate(req,"users.update");
+        if(!auth.valid){
+            AuthUtil.reject403(res);
+            return;
+        }
+        
+    })
 }

@@ -1,6 +1,7 @@
 ﻿import {Request, Response} from "express";
 import DbUtil from "./DbUtil";
 import CryptoUtil from "./CryptoUtil";
+import {Connection} from "mysql";
 export default class{
     public static async authenticate(request:Request,scope:string):Promise<AuthenticationResult> {
         return new Promise(async (resolve, reject) => {
@@ -33,7 +34,7 @@ export default class{
                     }
                     if(rows[0]["scope"]!="*"){
                         let scopes = rows[0]["scope"].split(",");
-                        if(!scopes.includes(scope)){
+                        if(!scopes.includes(scope)||scope=="*"){
                             resolve({valid:false});
                             return;
                         }
@@ -84,10 +85,42 @@ export default class{
             "message":"Too many requests"
         }
     }
+    public static async createRoot():Promise<void>{
+        let conn:Connection = DbUtil.getConnection();
+        conn.query(`Select * from ${DbUtil.getTablePrefix()}_users where id = ?`,[1],async (err,rows)=>{
+            if(err){
+                console.log(err);
+                return;
+            }
+            if(rows.length==0){
+                console.log("Creating root user...");
+                let password = "";
+                for(let i=0;i<10;i++) {
+                    password += Math.random().toString(36).substring(2, 7);
+                }
+                let flags=0;
+                for(let flag in UserFlags){
+                    flags|=parseInt(UserFlags[flag]);
+                }
+                conn.query(`Insert into ${DbUtil.getTablePrefix()}_users (username,password,flags,sourceip,creationtimestamp) values (?,?,?,?,unix_timestamp())`,["root",await CryptoUtil.hashPassword(password),flags,"0.0.0.0",""],(err)=>{
+                    if(err) {
+                        console.log(err);
+                    }
+                    console.log("Root user created!");
+                    console.log("Password: ",password);
+                })
+            }
+        });
+    }
 }
 export interface AuthenticationResult {
     valid: boolean;
     sessionid?: string;
     userid?: string;
     scopes?: string[];
+}
+export enum UserFlags{
+    ADMIN = 1<<0,
+    Privileged = 1<<1
+    
 }
