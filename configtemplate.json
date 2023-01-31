@@ -1,0 +1,18 @@
+﻿{
+  "db": {
+    "host": "localhost",
+    "port": 3306,
+    "password": "password",
+    "user": "user",
+    "dbname": "dbname",
+    "tableprefix": "oa"
+  },
+  "ratelimiting": {
+    "login": {
+      "accountsperip": 3
+    },
+    "users": 10,
+    "applications": 15
+    
+  }
+}
