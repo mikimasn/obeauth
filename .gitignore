@@ -115,4 +115,4 @@ config.json
 /.idea
 
 #remove keys
-*.keys
+*.key
