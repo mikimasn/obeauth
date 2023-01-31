@@ -109,3 +109,7 @@ dist
 
 #remove config
 config.json
+
+#remove idea and vscode files
+/.vscode
+/.idea
