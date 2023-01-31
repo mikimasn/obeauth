@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+#due to typescript let remove compiled js files
+*.js
+*.js.map
