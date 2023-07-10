@@ -2,11 +2,28 @@
 import {Connection} from "mysql";
 import {Request} from "express";
 import CryptoUtil from "../Utils/CryptoUtil";
+import ReturnableHTTP from "./ReturnableHTTP";
 
-export default class {
+export default class implements ReturnableHTTP{
     private id:number;
     constructor(id:number){
         this.id = id;
+    }
+    public getJsonObject():Promise<JSON> {
+        return new Promise((resolve, reject) => {
+            let conn: Connection = DbUtil.getConnection();
+            conn.query(`select session_id, revoked, owner, scopes, revokable, appid, lastuse,creationtime
+                        from ${DbUtil.getTablePrefix()}_users
+                        where id = ?`, [this.id], (err, rows) => {
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                rows[0]["scopes"] = rows[0]["scopes"].split(",");
+                resolve(rows[0]);
+            });
+        });
     }
     public async revoke(checkrevokable:boolean):Promise<boolean>{
         return new Promise((resolve,reject)=>{
@@ -37,8 +54,8 @@ export default class {
                 })
             });
         })
-       
-        
+
+
     }
     public static async createSession(scopes:string[],userid:number,revokable:boolean,req:Request,appid:string=""):Promise<string> {
         return new Promise(async (resolve,reject)=>{
