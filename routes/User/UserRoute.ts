@@ -15,6 +15,10 @@ export default function (app:Express){
     app.use("/user",ratelimit);
     app.use("/user",AuthUtil.authenticateRequest);
     app.get("/user", (req, res) => {
+        if(!AuthUtil.validateScope(res.locals.authentication,"user.read")){
+            AuthUtil.reject403(res);
+            return;
+        }
         let user = new User(parseInt(res.locals.authentication.userid));
         user.getJsonObject().then((obj)=>{
             console.log(obj);
