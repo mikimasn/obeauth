@@ -13,7 +13,7 @@ export default class implements ReturnableHTTP{
         return new Promise((resolve, reject) => {
             let conn: Connection = DbUtil.getConnection();
             conn.query(`select session_id, revoked, owner, scopes, revokable, appid, lastuse,creationtime
-                        from ${DbUtil.getTablePrefix()}_users
+                        from ${DbUtil.getTablePrefix()}_sessions
                         where id = ?`, [this.id], (err, rows) => {
                 if(err){
                     console.log(err);
