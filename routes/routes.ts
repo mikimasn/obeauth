@@ -1,6 +1,7 @@
 import {Express,Request,Response} from "express";
 import UsersRoute from "./User/UsersRoute";
 import ApplicationsRoute from "./Applications/Applications";
+import UserRoute from "./User/UserRoute";
 export default function (app: Express){
     app.use("/",(req:Request,res:Response,next)=>{
         console.log(req.body);
@@ -27,4 +28,5 @@ export default function (app: Express){
     })
     UsersRoute(app);
     ApplicationsRoute(app);
+    UserRoute(app);
 }

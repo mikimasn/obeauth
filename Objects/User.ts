@@ -15,7 +15,7 @@ export default class implements ReturnableHTTP {
     public getJsonObject():Promise<JSON> {
         return new Promise((resolve, reject) => {
             let conn: Connection = DbUtil.getConnection();
-            conn.query(`select *
+            conn.query(`select id, creationtimestamp, username, flags
                         from ${DbUtil.getTablePrefix()}_users
                         where id = ?`, [this.id], (err, rows) => {
                 if(err){
