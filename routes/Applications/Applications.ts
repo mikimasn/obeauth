@@ -1,21 +1,24 @@
 ﻿import {Express,Request,Response} from "express";
-import AuthUtil from "../../Utils/AuthUtil";
+import AuthUtil, {AuthenticationResult, UserFlags} from "../../Utils/AuthUtil";
 import Application from "../../Objects/Application";
 let rateLimit = require("express-rate-limit");
 import ConfigUtil from "../../Utils/ConfigUtil";
+import User from "../../Objects/User";
 export default function (app:Express){
     let ratelimit = rateLimit({
-        windowMs: 60 * 1000, 
-        max: parseInt(ConfigUtil.getConfigKey("ratelimiting.applications")), 
-        standardHeaders: true, 
+        windowMs: 60 * 1000,
+        max: parseInt(ConfigUtil.getConfigKey("ratelimiting.applications")),
+        standardHeaders: true,
         legacyHeaders: false,
         message:AuthUtil.rejectRateLimit
     });
     app.use("/applications",ratelimit);
+    app.use("/applications",AuthUtil.authenticateRequest);
     app.use("/applications/:appid",(req:Request,res:Response,next)=>{
         AuthUtil.authenticate(req,"applications").then((result)=>{
             if(result.valid && result.userid){
                 let app=new Application(req.params.appid);
+                res.locals.authentication = result;
                 app.verifyOwnership(result.userid).then((valid)=>{
                     if(valid)
                         next();
@@ -26,21 +29,37 @@ export default function (app:Express){
                 return;
             }
             AuthUtil.reject403(res);
-            
+
         })
     })
     app.get("/applications",(req:Request,res:Response)=> {
-        res.status(200).send({
-            "message": "Application Route Working"
-        });
-    });
-    app.post("/applications",async (req:Request,res:Response)=> {
-        if(!req.headers["authorization"]) {
-            AuthUtil.reject401(res);
+        let authobj:AuthenticationResult = res.locals.authentication;
+        if(!authobj.userid){
+            AuthUtil.reject403(res);
             return;
         }
-        let authenticate = await AuthUtil.authenticate(req,"applications.create");
-        if(!authenticate.valid||!authenticate.userid){
+        if(!AuthUtil.validateScope(authobj,"applications.list")){
+            AuthUtil.reject403(res);
+            return;
+        }
+        let user = new User(parseInt(authobj.userid));
+        user.getApplications().then((apps)=>{
+            res.status(200).send(apps.map(async (app)=>await app.getJsonObject()));
+        })
+    });
+    app.post("/applications",async (req:Request,res:Response)=> {
+        let authobj:AuthenticationResult = res.locals.authentication;
+        if(!authobj.userid){
+            AuthUtil.reject403(res);
+            return;
+        }
+        if(!AuthUtil.validateScope(authobj,"applications.create")){
+            AuthUtil.reject403(res);
+            return;
+        }
+        let user = new User(parseInt(res.locals.authentication.userid));
+        let flags = await user.getFlags();
+        if((flags&UserFlags.Privileged)==0){
             AuthUtil.reject403(res);
             return;
         }
@@ -49,10 +68,11 @@ export default function (app:Express){
                 "error":0,
                 "message":"Invalid Data"
             });
+            return;
         }
-        let app = await Application.createApp(req.body.name,authenticate.userid);
+        let app = await Application.createApp(req.body.name,authobj.userid);
         res.status(200).send(await app.getJsonObject());
-        
-        
+
+
     });
 }

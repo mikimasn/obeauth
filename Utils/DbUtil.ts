@@ -10,7 +10,7 @@ export default class {
                 revoked    boolean not null,
                 owner      TEXT    not null,
                 token      TEXT    not null,
-                scopes     JSON    not null,
+                scopes     TEXT    not null,
                 revokable  boolean not null,
                 appid      TEXT    null,
                 lastuse    long    null,
@@ -27,7 +27,6 @@ export default class {
             source_ip  TEXT null,
             endpoint   TEXT null,
             method     TEXT null,
-            data       JSON null,
             id int auto_increment invisible,
             constraint id
                 primary key (id)
@@ -60,8 +59,8 @@ export default class {
         create index if not exists password
             on ${config.tableprefix}_users (password);
         `);
-        
-        
+
+
     }
     public static createconnection():Promise<void>{
         return new Promise((resolve,reject)=> {
@@ -96,7 +95,7 @@ export interface DbConfig {
     user: string;
     password: string;
     dbname: string;
-    
+
     port: number;
     tableprefix: string;
 }

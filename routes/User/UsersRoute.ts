@@ -3,6 +3,7 @@ import DbUtil from "../../Utils/DbUtil";
 import ConfigUtil from "../../Utils/ConfigUtil";
 import AuthUtil from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
+import session from "../../Objects/Session";
 let rateLimit = require("express-rate-limit");
 export default function (app:Express){
     let ratelimit = rateLimit({
@@ -12,6 +13,7 @@ export default function (app:Express){
         legacyHeaders: false,
         message:AuthUtil.rejectRateLimit
     });
+    app.use("/users",ratelimit);
     app.get("/users",(req:Request,res:Response)=> {
         res.status(200).send({
             "message": "Users Route Working"
@@ -50,16 +52,35 @@ export default function (app:Express){
            }
        })
     });
-    app.patch("/users/:userid/flags",async(req:Request,res:Response)=>{
-        if(!req.body.token){
-            AuthUtil.reject401(res);
-            return;
-        }
-        let auth = await AuthUtil.authenticate(req,"users.update");
-        if(!auth.valid){
+    app.post("/users/login",async (req:Request,res:Response)=>{
+        if(req.headers.token){
             AuthUtil.reject403(res);
             return;
         }
-        
-    })
+        if(!req.body.username||!req.body.password){
+            res.status(400).send({
+                "error":0,
+                "message":"Invalid Data"
+            });
+        }
+        let auth = await AuthUtil.validateUser(req.body.username,req.body.password);
+        if(auth.valid&&auth.userid){
+            try {
+                let newsession = await session.createSession(["*"], parseInt(auth.userid), true, req);
+                res.status(200).send({
+                    "token": newsession
+                });
+            }
+            catch (err){
+                console.error(err);
+                AuthUtil.reject403(res);
+                return;
+            }
+
+        }
+        else {
+            AuthUtil.reject403(res);
+            return;
+        }
+    });
 }

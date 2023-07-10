@@ -1,5 +1,5 @@
 ﻿import {Express,Request,Response} from "express";
-import AuthUtil from "../../Utils/AuthUtil";
+import AuthUtil, {UserFlags} from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
 import Session from "../../Objects/Session";
 export default function (app:Express){
@@ -27,10 +27,10 @@ export default function (app:Express){
         await new User(id).setFlags(req.body.flag);
     });
     app.patch("/users/:userid/password",async(req:Request,res:Response)=>{
-        let auth = await authorizeuser(req,res,"users.updatepassword");
+        let auth = await authorizeuser(req,res,"users.updatepassword",true);
         if(!auth)
             return;
-        if(!req.body.flag){
+        if(!req.body.password){
             res.status(400).send({
                 "error": 0,
                 "message": "Invalid Data"
@@ -47,7 +47,7 @@ export default function (app:Express){
             });
             return;
         }
-        await new User(id).setFlags(req.body.flag);
+        await new User(id).setPassword(req.body.password);
     });
     app.delete("/users/logout",async (req:Request,res:Response)=>{
         let auth=await AuthUtil.authenticate(req,"*");
@@ -71,8 +71,8 @@ export default function (app:Express){
             AuthUtil.reject500(res);
             return;
         }
-        
-        
+
+
     })
 }
 async function authorizeuser(req:Request,res:Response,scope:string,requireroot:boolean=false):Promise<boolean>{
@@ -87,14 +87,13 @@ async function authorizeuser(req:Request,res:Response,scope:string,requireroot:b
     }
     if(!auth.userid)
         return false;
-    if(requireroot)
-       if(auth.userid!="1") {
-           AuthUtil.reject403(res);
-           return false;
-       }
-    if(!(auth.userid=="1"||auth.userid==req.params.userid)){
-        AuthUtil.reject403(res);
-        return false;
+    if(requireroot){
+        let user = new User(parseInt(auth.userid));
+        let flags = await user.getFlags();
+        if((flags&UserFlags.ADMIN)==0){
+            AuthUtil.reject403(res);
+            return false;
+        }
     }
     return true;
 }

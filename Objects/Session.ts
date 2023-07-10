@@ -1,6 +1,7 @@
-﻿import User from "./User";
-import DbUtil from "../Utils/DbUtil";
+﻿import DbUtil from "../Utils/DbUtil";
 import {Connection} from "mysql";
+import {Request} from "express";
+import CryptoUtil from "../Utils/CryptoUtil";
 
 export default class {
     private id:number;
@@ -38,5 +39,20 @@ export default class {
         })
        
         
-    }   
+    }
+    public static async createSession(scopes:string[],userid:number,revokable:boolean,req:Request,appid:string=""):Promise<string> {
+        return new Promise(async (resolve,reject)=>{
+            let conn:Connection = DbUtil.getConnection();
+            let sdb = scopes.join(",");
+            let prove = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            conn.query(`insert into ${DbUtil.getTablePrefix()}_sessions (scopes,revokable,createtime,revoked,owner,token,appid) values (?,?,unix_timestamp(),FALSE,?,?,?)`,[sdb,revokable?1:0,userid,await CryptoUtil.hashPassword(prove),appid],(err,result)=>{
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                resolve(result.insertId+":"+prove);
+            })
+        })
+    }
 }

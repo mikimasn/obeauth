@@ -2,6 +2,7 @@
 import DbUtil from "./DbUtil";
 import CryptoUtil from "./CryptoUtil";
 import {Connection} from "mysql";
+import AuthUtil from "./AuthUtil";
 export default class{
     public static async authenticate(request:Request,scope:string):Promise<AuthenticationResult> {
         return new Promise(async (resolve, reject) => {
@@ -17,7 +18,6 @@ export default class{
                 resolve({valid:false});
                 return;
             }
-            prove = await CryptoUtil.hashPassword(prove);
             conn.query(`select *
                         from ${DbUtil.getTablePrefix()}_sessions
                         where session_id = ?
@@ -25,32 +25,36 @@ export default class{
                 if (err) {
                     return false;
                 }
-                if (rows.length == 0) 
+                if (rows.length == 0)
                     resolve({valid:false});
                 else{
-                    if(!CryptoUtil.validateHash(prove,rows[0].prove)){
+                    if(!CryptoUtil.validateHash(prove,rows[0].token)){
                         resolve({valid:false});
                         return;
                     }
-                    if(rows[0]["scope"]!="*"){
-                        let scopes = rows[0]["scope"].split(",");
+                    if(rows[0]["scopes"]!="*"){
+                        let scopes = rows[0]["scopes"].split(",");
                         if(!scopes.includes(scope)||scope=="*"){
                             resolve({valid:false});
                             return;
                         }
                     }
-                    conn.query(`Insert into ${DbUtil.getTablePrefix()}_logs (session_id,timestamp,source_ip,endpoint,method,data) values (?,unix_timestamp(),?,?,?,?);
-                    Update ${DbUtil.getTablePrefix()}_logs SET lastuse = ? Where 'session_id'=?`,[session_id,request.ip,request.originalUrl,request.method,request.body,Date.now(),session_id],(err)=>{
+                    conn.query(`Insert into ${DbUtil.getTablePrefix()}_logs (session_id,timestamp,source_ip,endpoint,method) values (?,unix_timestamp(),?,?,?);`,[session_id,request.ip,request.originalUrl,request.method],(err)=>{
                         if(err)
                             console.log(err);
-                        let scopes:string[] = JSON.parse(rows[0]["scope"]);
-                        resolve({
-                            valid:true,
-                            sessionid:session_id,
-                            userid:rows[0]["owner"],
-                            scopes:scopes
-                        });
-                    })   
+                        conn.query(`Update ${DbUtil.getTablePrefix()}_sessions SET lastuse = ? Where session_id=?;`,[Date.now(),session_id],(err)=>{
+                            if(err)
+                                console.log(err);
+                            let scopes:string[] = rows[0]["scopes"].split(",");
+                            resolve({
+                                valid:true,
+                                sessionid:session_id,
+                                userid:rows[0]["owner"],
+                                scopes:scopes
+                            });
+                        })
+
+                    })
                 }
             })
         });
@@ -112,6 +116,53 @@ export default class{
             }
         });
     }
+    public static async validateUser(username:string,password:string):Promise<UserAuthenticationResult>{
+        return new Promise(async (resolve, reject) => {
+                    let conn:Connection = DbUtil.getConnection();
+                    conn.query(`Select * from ${DbUtil.getTablePrefix()}_users where username = ?`,[username],async (err,rows)=>{
+                        if(err){
+                            console.log(err);
+                            resolve({valid:false});
+                            return;
+                        }
+                        if(rows.length==0){
+                            resolve({valid:false});
+                            return;
+                        }
+                        if(!CryptoUtil.validateHash(password,rows[0]["password"])){
+                            resolve({valid:false});
+                            return;
+                        }
+                        resolve({
+                            valid:true,
+                            userid:rows[0]["id"],
+                        });
+                    });
+                });
+    }
+    public static validateScope(obj:AuthenticationResult,scope:string):boolean{
+        if(!obj.valid||!obj.scopes)
+            return false;
+        return (obj.scopes.includes(scope)||obj.scopes.includes("*"));
+    }
+    public static authenticateRequest(req:Request,res:Response,next:Function):Promise<void>{
+        return new Promise(async (resolve, reject) => {
+            if(!req.headers["authorization"]) {
+                AuthUtil.reject401(res);
+                resolve();
+                return;
+            }
+            let authenticate = await AuthUtil.authenticate(req,"*");
+            if(!authenticate.valid||!authenticate.userid){
+                AuthUtil.reject403(res);
+                resolve();
+                return;
+            }
+            res.locals.authentication = authenticate;
+            next();
+            resolve();
+        });
+    }
 }
 export interface AuthenticationResult {
     valid: boolean;
@@ -119,8 +170,12 @@ export interface AuthenticationResult {
     userid?: string;
     scopes?: string[];
 }
+export interface UserAuthenticationResult{
+    valid:boolean;
+    userid?:string;
+}
 export enum UserFlags{
     ADMIN = 1<<0,
     Privileged = 1<<1
-    
+
 }
