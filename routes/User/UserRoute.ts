@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import ConfigUtil from "../../Utils/ConfigUtil";
 import AuthUtil from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
+import Session from "../../Objects/Session";
 
 export default function (app:Express){
     let ratelimit = rateLimit({
@@ -25,4 +26,10 @@ export default function (app:Express){
             res.status(200).send(obj);
         });
     });
+    app.get("/user/session", (req, res) => {
+        let session = new Session(res.locals.authentication.sessionid);
+        session.getJsonObject().then((obj)=>{
+            res.status(200).send(obj);
+        });
+    })
 }
