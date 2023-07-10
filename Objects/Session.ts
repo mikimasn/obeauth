@@ -12,9 +12,9 @@ export default class implements ReturnableHTTP{
     public getJsonObject():Promise<JSON> {
         return new Promise((resolve, reject) => {
             let conn: Connection = DbUtil.getConnection();
-            conn.query(`select session_id, revoked, owner, scopes, revokable, appid, lastuse,creationtime
+            conn.query(`select session_id, revoked, owner, scopes, revokable, appid, lastuse, createtime
                         from ${DbUtil.getTablePrefix()}_sessions
-                        where id = ?`, [this.id], (err, rows) => {
+                        where session_id = ?`, [this.id], (err, rows) => {
                 if(err){
                     console.log(err);
                     reject();
