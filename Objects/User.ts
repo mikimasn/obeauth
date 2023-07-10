@@ -16,7 +16,7 @@ export default class implements ReturnableHTTP {
         return new Promise((resolve, reject) => {
             let conn: Connection = DbUtil.getConnection();
             conn.query(`select *
-                        from ${DbUtil.getTablePrefix()}_applications
+                        from ${DbUtil.getTablePrefix()}_users
                         where id = ?`, [this.id], (err, rows) => {
                 if(err){
                     console.log(err);
