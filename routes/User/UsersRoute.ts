@@ -41,6 +41,20 @@ export default function (app:Express){
                AuthUtil.reject429(res,"Too many accounts");
                return;
            }
+           DbUtil.getConnection().query(`Select * from ${DbUtil.getTablePrefix()}_users where username = ?`,[req.body.username],async (err,rows)=>{
+                if(err){
+                     console.error(err);
+                     AuthUtil.reject500(res);
+                     return;
+                }
+                if(rows.length>0){
+                     res.status(400).send({
+                          "error":1,
+                          "message":"Username already exists"
+                     });
+                     return;
+                }
+           });
            try {
                let user = await User.createUser(req.body.username, req.body.password, req);
                res.status(200).send(await user.getJsonObject());
