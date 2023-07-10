@@ -20,8 +20,7 @@ export default function (app:Express){
         });
     });
     app.post("/users",async(req:Request,res:Response)=> {
-        let auth = await AuthUtil.authenticate(req,"users.create");
-        if(auth.valid){
+        if(req.headers.token){
             AuthUtil.reject403(res);
             return;
         }
