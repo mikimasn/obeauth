@@ -2,9 +2,10 @@
 import AuthUtil, {UserFlags} from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
 import Session from "../../Objects/Session";
+import CryptoUtil from "../../Utils/CryptoUtil";
 export default function (app:Express){
     app.patch("/users/:userid/flags",async(req:Request,res:Response)=>{
-        let auth = await authorizeuser(req,res,"users.update",true);
+        let auth = await authorizeuser(req,res,"users.updateflags",true);
         if(!auth)
             return;
         if(!req.body.flag){
@@ -26,15 +27,42 @@ export default function (app:Express){
         }
         await new User(id).setFlags(req.body.flag);
     });
-    app.patch("/users/:userid/password",async(req:Request,res:Response)=>{
-        let auth = await authorizeuser(req,res,"users.updatepassword",true);
-        if(!auth)
-            return;
+    app.post("/users/:userid/password",async(req:Request,res:Response)=>{
+        if(req.params.userid=="me"){
+            let auth = await AuthUtil.authenticate(req,"users.updatepassword");
+            if(!auth.valid||!auth.userid){
+                AuthUtil.reject403(res);
+                return;
+            }
+            req.params.userid=auth.userid;
+            if(!req.body.oldpassword){
+                res.status(400).send({
+                    "error": 0,
+                    "message": "Invalid Data"
+                });
+                return;
+            }
+            let user = new User(parseInt(auth.userid));
+            let password = await user.getPassword();
+            if(!CryptoUtil.validateHash(req.body.oldpassword,password)){
+                res.status(400).send({
+                    "error": 0,
+                    "message": "Invalid old password"
+                });
+                return;
+            }
+        }
+        else {
+            let auth = await authorizeuser(req, res, "users.updatepassword", true);
+            if (!auth)
+                return;
+        }
         if(!req.body.password){
             res.status(400).send({
                 "error": 0,
                 "message": "Invalid Data"
             });
+            return;
         }
         let id:number;
         try{
