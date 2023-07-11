@@ -5,6 +5,7 @@ import Session from "../../Objects/Session";
 import CryptoUtil from "../../Utils/CryptoUtil";
 import rateLimit from "express-rate-limit";
 import ConfigUtil from "../../Utils/ConfigUtil";
+import UserSessionsManageRoute from "./UserSessionsManageRoute";
 export default function (app:Express){
     let ratelimit = rateLimit({
         windowMs: 10*60 * 1000,
@@ -121,7 +122,8 @@ export default function (app:Express){
         }
 
 
-    })
+    });
+    UserSessionsManageRoute(app);
 }
 async function authorizeuser(req:Request,res:Response,scope:string,requireroot:boolean=false):Promise<boolean>{
     if(!req.headers["authorization"]){

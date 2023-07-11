@@ -5,6 +5,7 @@ import User from "./User";
 import {Request} from "express";
 import CryptoUtil from "../Utils/CryptoUtil";
 import Application from "./Application";
+import Session from "./Session";
 
 export default class implements ReturnableHTTP {
     private id:number;
@@ -107,6 +108,23 @@ export default class implements ReturnableHTTP {
                     return;
                 }
                 resolve(rows[0].password);
+            })
+        })
+    }
+    public async getSessions(revoked:boolean=true):Promise<Array<Session>>{
+        return new Promise(async (resolve,reject)=> {
+            let conn = DbUtil.getConnection();
+            conn.query(`select session_id from ${DbUtil.getTablePrefix()}_sessions where owner = ? AND revoked = ? `, [this.id,revoked?0:1], (err, rows) => {
+                if (err) {
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                let sessions: Array<Session> = [];
+                for (let i = 0; i < rows.length; i++) {
+                    sessions.push(new Session(rows[i]["session_id"]));
+                }
+                resolve(sessions);
             })
         })
     }
