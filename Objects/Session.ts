@@ -57,6 +57,23 @@ export default class implements ReturnableHTTP{
 
 
     }
+    public async isRevoked():Promise<boolean>{
+        return new Promise((resolve,reject)=>{
+            let conn:Connection = DbUtil.getConnection();
+            conn.query(`select * from ${DbUtil.getTablePrefix()}_sessions where session_id = ?`,[this.id],(err,rows)=>{
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                if(rows.length==0){
+                    resolve(true);
+                    return;
+                }
+                resolve(rows[0]["revoked"]==1);
+            });
+        })
+    }
     public static async createSession(scopes:string[],userid:number,revokable:boolean,req:Request,appid:string=""):Promise<string> {
         return new Promise(async (resolve,reject)=>{
             let conn:Connection = DbUtil.getConnection();
