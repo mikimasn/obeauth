@@ -43,7 +43,8 @@ export default function (app: Express) {
             res.status(404).send({
                 success:false,
                 error:"Session not found"
-            })
+            });
+            return;
         }
         session.revoke(req.params.sessionid==res.locals.authentication.sessionid).then((result)=>{
             if(result){
