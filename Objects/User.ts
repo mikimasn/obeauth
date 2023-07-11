@@ -4,7 +4,6 @@ import DbUtil from "../Utils/DbUtil";
 import User from "./User";
 import {Request} from "express";
 import CryptoUtil from "../Utils/CryptoUtil";
-import {hash} from "bcrypt";
 import Application from "./Application";
 
 export default class implements ReturnableHTTP {
@@ -42,6 +41,7 @@ export default class implements ReturnableHTTP {
     }
     public static async createUser(username:string,password:string,req:Request):Promise<User>{
         return new Promise(async (resolve,reject)=>{
+            password=await CryptoUtil.hashPassword(password);
             let conn = DbUtil.getConnection();
             conn.query(`insert into ${DbUtil.getTablePrefix()}_users (username,password,sourceip,creationtimestamp,flags) values (?,?,?,unix_timestamp(),0)`,[username,password,req.ip],(err,result)=>{
                 if(err){
@@ -67,8 +67,8 @@ export default class implements ReturnableHTTP {
         })
     }
     public async setPassword(password:string):Promise<void>{
-        let hashedpassword = CryptoUtil.hashPassword(password);
-        return new Promise((resolve,reject)=>{
+        return new Promise(async (resolve,reject)=>{
+            let hashedpassword = await CryptoUtil.hashPassword(password);
             let conn = DbUtil.getConnection();
             conn.query(`update ${DbUtil.getTablePrefix()}_users set password = ? where id = ?`,[hashedpassword,this.id],(err)=>{
                 if(err){
@@ -94,6 +94,19 @@ export default class implements ReturnableHTTP {
                     apps.push(new Application(rows[i].id));
                 }
                 resolve(apps);
+            })
+        })
+    }
+    public async getPassword():Promise<string>{
+        return new Promise((resolve,reject)=>{
+            let conn = DbUtil.getConnection();
+            conn.query(`select password from ${DbUtil.getTablePrefix()}_users where id = ?`,[this.id],(err,rows)=>{
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                resolve(rows[0].password);
             })
         })
     }

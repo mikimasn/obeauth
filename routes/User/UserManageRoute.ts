@@ -3,7 +3,17 @@ import AuthUtil, {UserFlags} from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
 import Session from "../../Objects/Session";
 import CryptoUtil from "../../Utils/CryptoUtil";
+import rateLimit from "express-rate-limit";
+import ConfigUtil from "../../Utils/ConfigUtil";
 export default function (app:Express){
+    let ratelimit = rateLimit({
+        windowMs: 10*60 * 1000,
+        max: parseInt(ConfigUtil.getConfigKey("ratelimiting.usermanagment")),
+        standardHeaders: true,
+        legacyHeaders: false,
+        message:AuthUtil.rejectRateLimit
+    });
+    app.use("/users",ratelimit);
     app.patch("/users/:userid/flags",async(req:Request,res:Response)=>{
         let auth = await authorizeuser(req,res,"users.updateflags",true);
         if(!auth)
@@ -43,8 +53,8 @@ export default function (app:Express){
                 return;
             }
             let user = new User(parseInt(auth.userid));
-            let password = await user.getPassword();
-            if(!CryptoUtil.validateHash(req.body.oldpassword,password)){
+            let oldpassword = await user.getPassword();
+            if(!(await CryptoUtil.validateHash(req.body.oldpassword,oldpassword))){
                 res.status(400).send({
                     "error": 0,
                     "message": "Invalid old password"
@@ -75,7 +85,17 @@ export default function (app:Express){
             });
             return;
         }
-        await new User(id).setPassword(req.body.password);
+        try{
+            await new User(id).setPassword(req.body.password);
+            res.status(200).send({
+                "message": "Password Changed"
+            })
+        }
+        catch (e) {
+            AuthUtil.reject500(res);
+            console.error(e);
+
+        }
     });
     app.delete("/users/logout",async (req:Request,res:Response)=>{
         let auth=await AuthUtil.authenticate(req,"*");
@@ -104,7 +124,7 @@ export default function (app:Express){
     })
 }
 async function authorizeuser(req:Request,res:Response,scope:string,requireroot:boolean=false):Promise<boolean>{
-    if(!req.body.token){
+    if(!req.headers["authorization"]){
         AuthUtil.reject401(res);
         return false;
     }
