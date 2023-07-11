@@ -98,31 +98,6 @@ export default function (app:Express){
 
         }
     });
-    app.delete("/users/logout",async (req:Request,res:Response)=>{
-        let auth=await AuthUtil.authenticate(req,"*");
-        if(!auth.valid){
-            AuthUtil.reject403(res);
-            return;
-        }
-        if(!auth.sessionid)
-            return;
-        try{
-            let result = await new Session(parseInt(auth.sessionid)).revoke(true);
-            if(!result){
-                AuthUtil.reject403(res);
-                return;
-            }
-            res.status(200).send({
-                "message": "Logged Out"
-            });
-        }
-        catch (e) {
-            AuthUtil.reject500(res);
-            return;
-        }
-
-
-    });
     UserSessionsManageRoute(app);
 }
 async function authorizeuser(req:Request,res:Response,scope:string,requireroot:boolean=false):Promise<boolean>{

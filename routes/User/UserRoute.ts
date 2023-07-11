@@ -1,4 +1,4 @@
-import {Express} from "express";
+import {Express, Request, Response} from "express";
 import rateLimit from "express-rate-limit";
 import ConfigUtil from "../../Utils/ConfigUtil";
 import AuthUtil from "../../Utils/AuthUtil";
@@ -31,5 +31,30 @@ export default function (app:Express){
         session.getJsonObject().then((obj)=>{
             res.status(200).send(obj);
         });
-    })
+    });
+    app.delete("/user/logout",async (req:Request,res:Response)=>{
+        let auth=await AuthUtil.authenticate(req,"*");
+        if(!auth.valid){
+            AuthUtil.reject403(res);
+            return;
+        }
+        if(!auth.sessionid)
+            return;
+        try{
+            let result = await new Session(parseInt(auth.sessionid)).revoke(true);
+            if(!result){
+                AuthUtil.reject403(res);
+                return;
+            }
+            res.status(200).send({
+                "message": "Logged Out"
+            });
+        }
+        catch (e) {
+            AuthUtil.reject500(res);
+            return;
+        }
+
+
+    });
 }
