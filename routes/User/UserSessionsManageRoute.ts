@@ -1,7 +1,8 @@
 import {Express} from "express";
-import AuthUtil, {UserFlags} from "../../Utils/AuthUtil";
+import AuthUtil, {AuthenticationResult, UserFlags} from "../../Utils/AuthUtil";
 import User from "../../Objects/User";
 import Session from "../../Objects/Session";
+import ConfigUtil from "../../Utils/ConfigUtil";
 
 export default function (app: Express) {
     app.use("/users/:userid/sessions", async (req, res, next) => {
@@ -56,5 +57,76 @@ export default function (app: Express) {
                 return;
             }
         });
+    });
+    app.post("/users/:userid/sessions",async (req,res)=>{
+        if(!AuthUtil.validateScope(res.locals.authentication,"user.sessions.create")){
+            AuthUtil.reject403(res);
+            return;
+        }
+        let uid = req.params.userid == "me" ? res.locals.authentication.userid : req.params.userid;
+        if(uid!=res.locals.authentication.userid){
+            AuthUtil.reject403(res);
+            return;
+        }
+        let authobj:AuthenticationResult = res.locals.authentication;
+        if(!authobj.scopes){
+            AuthUtil.reject403(res);
+            return;
+        }
+        if(!req.body.scopes||req.body.revokable===undefined){
+            res.status(400).send({
+                success:false,
+                error:"Missing required parameters"
+            });
+            return;
+        }
+        if(!Array.isArray(req.body.scopes)||req.body.scopes.length>50){
+            res.status(400).send({
+                success:false,
+                error:"Invalid scopes"
+            });
+            return;
+        }
+        if(typeof req.body.revokable!="boolean"){
+            res.status(400).send({
+                success:false,
+                error:"Invalid revokable parameter"
+            });
+            return;
+        }
+        let allowedList = ConfigUtil.getConfigKeyList("allowedSessionCreationScopes");
+        for(let scope of req.body.scopes){
+            if(typeof scope!="string"){
+                res.status(400).send({
+                    success:false,
+                    error:"Invalid scopes"
+                });
+                return;
+            }
+            if(!allowedList.includes(scope)){
+                res.status(403).send({
+                    success:false,
+                    error:`You cannot grant a scope ${scope}`
+                })
+                return;
+            }
+            if(!AuthUtil.validateScope(authobj,scope)||scope=="*"){
+                res.status(403).send({
+                    success:false,
+                    error:`You cannot grant a scope ${scope}`
+                })
+                return;
+            }
+        }
+        Session.createSession(req.body.scopes,uid,req.body.revokable,req," ").then((session)=>{
+          if(session){
+              res.status(200).send({
+                  success:true,
+                  token:session
+              });
+              return;
+          }
+        })
+
     });
 }
