@@ -60,11 +60,11 @@ export default class {
             on ${config.tableprefix}_users (password);
         `);
         await this.conn.query(`
-            create table ${config.tableprefix}_appregister
+            create table if not exists ${config.tableprefix}_appregister
             (
-                appid   int null,
-                \`key\` text null,
-                value   text null
+                \`key\` VARCHAR(50) null,
+                value   text null,
+                constraint appregister_pk primary key (\`key\`)
             );
         `);
     }

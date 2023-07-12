@@ -26,8 +26,8 @@ export default function (app:Express){
             return;
         }
         let user = new User(parseInt(authobj.userid));
-        user.getApplications().then((apps)=>{
-            res.status(200).send(apps.map(async (app)=>await app.getJsonObject()));
+        user.getApplications().then(async (apps)=>{
+            res.status(200).send(await Promise.all(apps.map(async (app)=>await app.getJsonObject())));
         })
     });
     app.post("/applications",async (req:Request,res:Response)=> {

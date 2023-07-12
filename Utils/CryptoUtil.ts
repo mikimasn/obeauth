@@ -49,6 +49,9 @@ export default class {
                 privateKey: keypair.privateKey
             }
     }
+    public static randomHex(length:number):string{
+        return crypto.randomBytes(length).toString('hex');
+    }
 }
 interface keys {
     publicKey: string
