@@ -35,7 +35,7 @@ export default class {
         create table if not exists ${config.tableprefix}_applications
         (
             id      int auto_increment,
-            name    int null,
+            name    TEXT null,
             ownerid int null,
             constraint id
                 primary key (id)
@@ -59,8 +59,14 @@ export default class {
         create index if not exists password
             on ${config.tableprefix}_users (password);
         `);
-
-
+        await this.conn.query(`
+            create table ${config.tableprefix}_appregister
+            (
+                appid   int null,
+                \`key\` text null,
+                value   text null
+            );
+        `);
     }
     public static createconnection():Promise<void>{
         return new Promise((resolve,reject)=> {
