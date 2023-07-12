@@ -32,9 +32,9 @@ export default class{
                         resolve({valid:false});
                         return;
                     }
-                    if(rows[0]["scopes"]!="*"){
+                    if(rows[0]["scopes"]!="*"&&scope!="*"){
                         let scopes = rows[0]["scopes"].split(",");
-                        if(!scopes.includes(scope)||scope=="*"){
+                        if(!scopes.includes(scope)){
                             resolve({valid:false});
                             return;
                         }
