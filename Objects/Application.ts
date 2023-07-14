@@ -94,4 +94,16 @@ export default class implements ReturnableHTTP {
             resolve(key);
         })
     }
+    public getRedirectUrls():Promise<string[]>{
+        return new Promise(async (resolve,reject)=>{
+            let redirectURI = await this.getRegisterKey("redirectURI");
+            resolve(redirectURI.split(","));
+        })
+    }
+    public setRedirectUrls(redirectURI:string[]):Promise<void>{
+        return new Promise(async (resolve,reject)=>{
+            await this.setRegisterKey("redirectURI",redirectURI.join(","));
+            resolve();
+        })
+    }
 }

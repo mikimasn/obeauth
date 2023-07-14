@@ -27,7 +27,7 @@ export default function (app: Express) {
             res.status(200).send(obj);
         });
     });
-    app.use("/applications/:appid/oauth2", async (req, res, next) => {
+    app.use("/applications/:appid/oauth2/keys", async (req, res, next) => {
         if (!req.body.password) {
             res.status(400).send({
                 success: false,
@@ -76,6 +76,37 @@ export default function (app: Express) {
         res.status(200).send({
             success:true,
             key:key
+        });
+    });
+    app.get("/applications/:appid/oauth2/redirecturl", async (req, res) => {
+        if(!AuthUtil.validateScope(res.locals.authentication,"applications.oauth2.redirecturl.list")){
+            AuthUtil.reject403(res);
+            return;
+        }
+        let app = new Application(req.params.appid);
+        let redirectUrls = await app.getRedirectUrls();
+        res.status(200).send({
+            success:true,
+            redirectUrls:redirectUrls
+        });
+    });
+    app.post("/applications/:appid/oauth2/redirecturl", async (req, res) => {
+      if(!AuthUtil.validateScope(res.locals.authentication,"applications.oauth2.redirecturl.set")){
+        AuthUtil.reject403(res);
+        return;
+      }
+      let app = new Application(req.params.appid);
+      let redirectUrls = req.body.redirectUrls;
+      if(!redirectUrls || !Array.isArray(redirectUrls)){
+        res.status(400).send({
+          success:false,
+          error:"Missing redirectUrls"
+        });
+        return;
+      }
+      await app.setRedirectUrls(redirectUrls);
+        res.status(200).send({
+            success:true
         });
     })
 }
