@@ -67,6 +67,15 @@ export default class {
                 constraint appregister_pk primary key (\`key\`)
             );
         `);
+        await this.conn.query(`
+            create table if not exists ${config.tableprefix}_userregister
+            (
+                \`key\` VARCHAR(50) null,
+                value TEXT null,
+                constraint userregister_pk
+                    primary key (\`key\`)
+            );
+        `);
     }
     public static createconnection():Promise<void>{
         return new Promise((resolve,reject)=> {

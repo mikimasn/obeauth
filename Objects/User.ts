@@ -128,4 +128,30 @@ export default class implements ReturnableHTTP {
             })
         })
     }
+    public async getRegisterKey(key:string):Promise<string>{
+        return new Promise((resolve,reject)=>{
+                    let conn = DbUtil.getConnection();
+                    conn.query(`select \`value\` from ${DbUtil.getTablePrefix()}_userregister where \`key\` = ?`,[`${this.id}:${key}`],(err,rows)=>{
+                        if(err){
+                            console.log(err);
+                            reject();
+                            return;
+                        }
+                        resolve(rows[0].value);
+                    })
+                })
+    }
+    public async setRegisterKey(key:string,value:string):Promise<void>{
+        return new Promise((resolve,reject)=>{
+            let conn = DbUtil.getConnection();
+            conn.query(`insert into ${DbUtil.getTablePrefix()}_userregister (\`key\`,\`value\`) values (?,?) on duplicate `,[`${this.id}:${key}`,value],(err)=>{
+                if(err){
+                    console.log(err);
+                    reject();
+                    return;
+                }
+                resolve();
+            })
+        })
+    }
 }
