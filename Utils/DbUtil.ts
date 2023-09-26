@@ -18,8 +18,8 @@ export default class {
                 constraint session_id
                     primary key (session_id)
             );
-            create index if not exists user
-                on ${config.tableprefix}_sessions (owner);`);
+            create index user
+                on ${config.tableprefix}_sessions (owner(255));`);
         await this.conn.query(`create table if not exists ${config.tableprefix}_logs
             (
             session_id TEXT null,
@@ -41,7 +41,7 @@ export default class {
                 primary key (id)
         );
         
-        create index if not exists owner
+        create index owner
             on ${config.tableprefix}_applications (ownerid);`);
         await this.conn.query(`
         create table if not exists ${config.tableprefix}_users
@@ -56,13 +56,13 @@ export default class {
                 primary key (id)
         );
         
-        create index if not exists password
-            on ${config.tableprefix}_users (password);
+        create index password
+            on ${config.tableprefix}_users (password(255));
         `);
         await this.conn.query(`
             create table if not exists ${config.tableprefix}_appregister
             (
-                \`key\` VARCHAR(50) null,
+                \`key\` VARCHAR(50),
                 value   text null,
                 constraint appregister_pk primary key (\`key\`)
             );
@@ -70,7 +70,7 @@ export default class {
         await this.conn.query(`
             create table if not exists ${config.tableprefix}_userregister
             (
-                \`key\` VARCHAR(50) null,
+                \`key\` VARCHAR(50) ,
                 value TEXT null,
                 constraint userregister_pk
                     primary key (\`key\`)
