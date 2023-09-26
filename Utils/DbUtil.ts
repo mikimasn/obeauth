@@ -4,7 +4,7 @@ export default class {
     private static conn : Connection;
     public static async initializedb():Promise<void> {
         await this.createconnection();
-        await this.conn.query(`create table if not exists ${config.tableprefix}_sessions
+        this.conn.query(`create table if not exists ${config.tableprefix}_sessions
             (
                 session_id int auto_increment invisible,
                 revoked    boolean not null,
@@ -18,9 +18,12 @@ export default class {
                 constraint session_id
                     primary key (session_id)
             );
+        `);
+        this.conn.query(`
             create index user
-                on ${config.tableprefix}_sessions (owner(255));`);
-        await this.conn.query(`create table if not exists ${config.tableprefix}_logs
+                on ${config.tableprefix}_sessions (owner(255));
+        `).on("error",()=>{});
+        this.conn.query(`create table if not exists ${config.tableprefix}_logs
             (
             session_id TEXT null,
             timestamp  long null,
@@ -31,7 +34,7 @@ export default class {
             constraint id
                 primary key (id)
             )`);
-        await this.conn.query(`
+        this.conn.query(`
         create table if not exists ${config.tableprefix}_applications
         (
             id      int auto_increment,
@@ -39,11 +42,12 @@ export default class {
             ownerid int null,
             constraint id
                 primary key (id)
-        );
-        
-        create index owner
-            on ${config.tableprefix}_applications (ownerid);`);
-        await this.conn.query(`
+        );`);
+        this.conn.query(`
+            create index owner
+                on ${config.tableprefix}_applications (ownerid);
+        `).on("error",()=>{});
+        this.conn.query(`
         create table if not exists ${config.tableprefix}_users
         (
             id            int auto_increment,
@@ -56,10 +60,13 @@ export default class {
                 primary key (id)
         );
         
-        create index password
-            on ${config.tableprefix}_users (password(255));
+        
         `);
-        await this.conn.query(`
+         this.conn.query(`
+                create index password
+                    on ${config.tableprefix}_users (password(255));
+         `).on("error",()=>{});
+        this.conn.query(`
             create table if not exists ${config.tableprefix}_appregister
             (
                 \`key\` VARCHAR(50),
@@ -67,7 +74,7 @@ export default class {
                 constraint appregister_pk primary key (\`key\`)
             );
         `);
-        await this.conn.query(`
+        this.conn.query(`
             create table if not exists ${config.tableprefix}_userregister
             (
                 \`key\` VARCHAR(50) ,
